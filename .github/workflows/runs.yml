@@ -1,0 +1,60 @@
+name: 🚀 Run SMSBoom
+
+# 触发 Action 的条件
+on: 
+ # 手动触发
+  workflow_dispatch:
+    inputs:
+      thread:
+        description: '线程数(默认64)'
+        required: true
+        default: '64'
+      phone:
+        description: '手机号'
+        required: true
+        default: ''
+      frequency:
+        description: '执行次数(默认1次)'
+        required: true
+        default: '1'
+      interval:
+        description: '间隔时间(默认60s)'
+        required: true
+        default: '60'
+      enable_proxy:
+        description: "开启代理"
+        required: true
+        default: "-e"
+        type: choice
+        options:
+        - '-e'
+        - ''
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 签出项目代码
+      - uses: actions/checkout@v3
+      # 设置 py3.8 环境
+      - name: 🚀 Set up Python 3.x
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.8'
+      
+      - name: Download proxy lists
+        run: |
+          rm http_proxy.txt
+          rm socks4_proxy.txt
+          rm socks5_proxy.txt
+          curl -o http_proxy.txt https://api.proxyscrape.com/v2/?request=getproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all
+          curl -o socks4_proxy.txt https://api.proxyscrape.com/v2/?request=getproxies&protocol=socks4&timeout=10000&country=all
+          curl -o socks5_proxy.txt https://api.proxyscrape.com/v2/?request=getproxies&protocol=socks5&timeout=10000&country=all
+      
+      - name: 🚀 Run SMSBoom Script
+        # 此处可以自定义命令行运行参数.替换手机号
+        run: |
+          pip3 install -r requirements.txt
+          python3 smsboom.py update
+          python3 smsboom.py run -t ${{ github.event.inputs.thread }} -p ${{ github.event.inputs.phone }} -f ${{ github.event.inputs.frequency }} -i ${{ github.event.inputs.interval }} ${{ github.event.inputs.enable_proxy }}
